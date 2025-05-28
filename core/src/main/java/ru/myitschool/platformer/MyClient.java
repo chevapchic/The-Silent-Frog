@@ -18,9 +18,8 @@ public class MyClient {
     boolean isCantConnected;
     private  MyRequest clientRequest;
     private MyResponse response;
-    private InetAddress host1;
     private MyResponse lastResponse;
-    private String  host;
+    private InetAddress  host;
 
     public MyClient(MyRequest request) {
         clientRequest = new MyRequest();
@@ -31,13 +30,9 @@ public class MyClient {
         kryoClient.register(MyRequest.class);
         kryoClient.register(MyResponse.class);
 
-
-        host = "192.168.1.44";
-
-//        try{
-//            host = client.discoverHost(54555, 20000);
-//        }catch(Exception e){
-//        }
+        try{
+            host = client.discoverHost(54555, 20000);
+        }catch(Exception e){  }
         client.addListener(new Listener() {
             @Override
             public void received(Connection connection, Object object) {
@@ -67,16 +62,14 @@ public class MyClient {
         return lastResponse;
     }
 
-    public void sendPosition(float x, float y) {
-        MyRequest request = new MyRequest();
-        request.x = x;
-        request.y = y;
+    public void sendPosition(float x, float y, int skin) {
+        MyRequest request = new MyRequest(x, y, skin);
         client.sendTCP(request);
         Gdx.app.log("CLIENT", "Sent client position: " + x + "," + y);
     }
 
 
-    public String  getIp() {
+    public InetAddress  getIp() {
         return host;
     }
     public boolean isCantConnected() {

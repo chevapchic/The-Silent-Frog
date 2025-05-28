@@ -65,6 +65,7 @@ public class MenuScreen implements Screen{
     private LevelTransition levelTransition;
     private Sound clickSound;
     public static int skin;
+    public static int skin1;
     private TextureRegionDrawable L2ButAvailUp;
     private TextureRegionDrawable L2ButAvailDown;
     private TextureRegionDrawable L3ButAvailUp;
@@ -294,7 +295,8 @@ public class MenuScreen implements Screen{
         frogButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-//                skin = 0;
+                skin = 0;
+                skin1 = 0;
                 levelTransition.startFade(() -> {
                     game.setScreen(new LevelScreen(game));
                     music.dispose();
@@ -316,7 +318,8 @@ public class MenuScreen implements Screen{
         mdButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-//                skin = 1;
+                skin = 1;
+                skin1 = 1;
                 levelTransition.startFade(() -> {
                     game.setScreen(new LevelScreen(game));
                     music.dispose();

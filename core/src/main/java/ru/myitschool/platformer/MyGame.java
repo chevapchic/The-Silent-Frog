@@ -23,7 +23,7 @@ public class MyGame extends Game {
     static MyResponse responseFromServer;
     @Override
     public void create() {
-        setScreen(new LevelScreen(this));
+        setScreen(new MenuScreen(this));
         System.out.println(getScore());
 
     }

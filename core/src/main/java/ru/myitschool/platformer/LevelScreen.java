@@ -1,5 +1,7 @@
 package ru.myitschool.platformer;
 
+import static ru.myitschool.platformer.MenuScreen.skin;
+import static ru.myitschool.platformer.MenuScreen.skin1;
 import static ru.myitschool.platformer.MyGame.SCREEN_HEIGHT;
 import static ru.myitschool.platformer.MyGame.SCREEN_WIDTH;
 import static ru.myitschool.platformer.MyGame.newScore;
@@ -111,6 +113,7 @@ public class LevelScreen implements Screen {
     MyResponse responseFromServer;
     private ImageButton createServerBut;
     private ImageButton createClientBut;
+    private static final float LERP_SPEED = 0.2f;
 
 
 
@@ -341,10 +344,10 @@ public class LevelScreen implements Screen {
 
 
         Texture playerTexture = new Texture("my/frog/FrogIdle_0.png");
-        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3, 0);
+        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
         player.setPosition(100, 500);
-        player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3, 1);
-        player2.setPosition(80, 500);
+        player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3);
+        player2.setPosition(100, 500);
 //        player.setPosition(1785, 1000);
         stage.addActor(player);
         stage.addActor(player2);
@@ -369,29 +372,36 @@ public class LevelScreen implements Screen {
         ScreenUtils.clear(0.1254902f, 0.11372549f, 0.1254902f, 1F);
         scrollX += 20 * delta;
         MyGame.newScore = score;
-        player.skin(0);
-        player2.skin(1);
+//        player.skin(0);
+//        player2.skin(1);
 
         if (isServer) {
-            // Получаем данные от клиента и обновляем player2
-//            MyRequest request = server.getRequest();
-//            if (request != null) {
-//                player2.setPosition(request.x, request.y);
-//            }
             // Отправляем свои координаты
-            server.updateServerPlayer(player.getX(), player.getY());
-
+            server.updateServerPlayer(player.getX(), player.getY(), player.getSkin());
             MyRequest request = server.getRequest();
             if(request!= null) {
-                player2.setPosition(request.x, request.y);
+//                player2.setPosition(request.x, request.y);
+//                player2.setSkin(request.skin);
+
+                player2.playerX += (request.x - player2.playerX) * LERP_SPEED;
+                player2.playerY += (request.y - player2.playerY) * LERP_SPEED;
+                player2.setPosition(player2.playerX, player2.playerY);
+                player2.setSkin(request.skin);
             }
         } else if (isClient) {
             // Отправляем свои координаты
-            client.sendPosition(player2.getX(), player2.getY());
+            client.sendPosition(player2.getX(), player2.getY(), player2.getSkin());
             // Получаем данные сервера
+            player2.setSkin(skin);
             MyResponse response = client.getResponse();
             if (response != null) {
-                player.setPosition(response.x, response.y);
+//                player.setPosition(response.x, response.y);
+//                player.setSkin(response.skin);
+
+                player.playerX += (response.x - player.playerX) * LERP_SPEED;
+                player.playerY += (response.y - player.playerY) * LERP_SPEED;
+                player.setPosition(player.playerX, player.playerY);
+                player.setSkin(response.skin);
             }
         }
 
@@ -524,7 +534,7 @@ public class LevelScreen implements Screen {
                     new Thread(() -> {
                         try {
                             MyGame.client = new MyClient(MyGame.requestFromClient);
-                            String hostAddress = MyGame.client.getIp();
+                            String hostAddress = MyGame.client.getIp().getHostAddress();
                             Gdx.app.postRunnable(() -> {
                                 if(MyGame.client.isCantConnected) {
                                     MyGame.client = null;

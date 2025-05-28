@@ -52,8 +52,8 @@ public class Player extends Actor {
     private Animation<TextureRegion> mdHitAnimation;
 
     private Vector2 velocity = new Vector2();
-    private float playerX;
-    private float playerY;
+    float playerX;
+    float playerY;
     private Polygon hitBox;
 
     private ImageButton rightButton;
@@ -83,7 +83,7 @@ public class Player extends Actor {
     private boolean touchingGround;
 
 
-    public Player(Texture texture, ImageButton leftButton, ImageButton rightButton, ImageButton upButton, float playerX, float playerY, Label CoinLabel, int maxHealth, int skin) {
+    public Player(Texture texture, ImageButton leftButton, ImageButton rightButton, ImageButton upButton, float playerX, float playerY, Label CoinLabel, int maxHealth) {
         this.playerTextureRegion = new TextureRegion(texture);
         this.leftButton = leftButton;
         this.rightButton = rightButton;
@@ -298,8 +298,11 @@ public class Player extends Actor {
         isInvincible = true;
         invincibilityTimer = invincibilityDuration;
     }
-    public void skin(int skin){
+    public void setSkin(int skin){
         this.skin = skin;
+    }
+    public int getSkin() {
+        return skin;
     }
 
 

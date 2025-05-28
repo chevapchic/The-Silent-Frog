@@ -51,10 +51,8 @@ public class MyServer {
         lastRequest = null; // Очищаем после чтения
         return req;
     }
-    public void updateServerPlayer(float x, float y) {
-        serverResponse = new MyResponse();
-        serverResponse.x = x;
-        serverResponse.y = y;
+    public void updateServerPlayer(float x, float y, int skin) {
+        serverResponse = new MyResponse(x, y, skin);
         server.sendToAllTCP(serverResponse);
         Gdx.app.log("SERVER", "Sent server position: " + x + "," + y);
     }

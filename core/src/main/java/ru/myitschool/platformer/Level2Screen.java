@@ -276,7 +276,7 @@ public class Level2Screen implements Screen{
         });
 
         Texture playerTexture = new Texture("my/frog/FrogIdle_0.png");
-        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
+        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3,0);
         player.setPosition(100, 600);
 //        player.setPosition(4350, 1000);
         stage.addActor(player);

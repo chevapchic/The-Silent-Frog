@@ -273,7 +273,7 @@ public class Level3Screen implements Screen{
 
         Texture playerTexture = new Texture("my/frog/FrogIdle_0.png");
         Level3Screen level3Screen = new Level3Screen(game);
-        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
+        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3,0);
         player.setPosition(400, 256);
         stage.addActor(player);
         player.setZIndex(2);

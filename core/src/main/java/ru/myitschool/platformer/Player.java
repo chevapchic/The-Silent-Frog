@@ -83,7 +83,7 @@ public class Player extends Actor {
     private boolean touchingGround;
 
 
-    public Player(Texture texture, ImageButton leftButton, ImageButton rightButton, ImageButton upButton, float playerX, float playerY, Label CoinLabel, int maxHealth) {
+    public Player(Texture texture, ImageButton leftButton, ImageButton rightButton, ImageButton upButton, float playerX, float playerY, Label CoinLabel, int maxHealth, int skin) {
         this.playerTextureRegion = new TextureRegion(texture);
         this.leftButton = leftButton;
         this.rightButton = rightButton;
@@ -172,10 +172,10 @@ public class Player extends Actor {
         }
 
 //        healOverTime(delta);
-        System.out.println("-----------");
-        System.out.println(getX());
-        System.out.println(getY());
-        System.out.println("-----------");
+//        System.out.println("-----------");
+//        System.out.println(getX());
+//        System.out.println(getY());
+//        System.out.println("-----------");
 
         if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && isStand) {
             velocity.y = JUMP;
@@ -297,6 +297,9 @@ public class Player extends Actor {
     private void setInvincible() {
         isInvincible = true;
         invincibilityTimer = invincibilityDuration;
+    }
+    public void skin(int skin){
+        this.skin = skin;
     }
 
 

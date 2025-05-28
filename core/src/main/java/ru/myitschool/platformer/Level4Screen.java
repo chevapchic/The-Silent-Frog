@@ -317,7 +317,7 @@ public class Level4Screen implements Screen{
 
 
         Texture playerTexture = new Texture("my/frog/FrogIdle_0.png");
-        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
+        player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3,0);
         player.setPosition(30, 600);
         player.JUMP = 652;
         stage.addActor(player);

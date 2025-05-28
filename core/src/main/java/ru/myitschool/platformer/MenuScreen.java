@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -31,6 +32,11 @@ import static ru.myitschool.platformer.MyGame.isLevel2Available;
 import static ru.myitschool.platformer.MyGame.isLevel3Available;
 import static ru.myitschool.platformer.MyGame.isLevel4Available;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
 public class MenuScreen implements Screen{
@@ -66,6 +72,11 @@ public class MenuScreen implements Screen{
     private TextureRegionDrawable L4ButAvailUp;
     private TextureRegionDrawable L4ButAvailDown;
 
+
+    //сеть
+
+    Vector3 touch;
+
     public MenuScreen(Game game) {
         this.game = game;
         levelTransition = new LevelTransition();
@@ -73,10 +84,14 @@ public class MenuScreen implements Screen{
     @Override
     public void show() {
 
+
+
         viewport = new FitViewport(SCREEN_WIDTH/2F, SCREEN_HEIGHT/2F);
         skyViewport = new FitViewport(SCREEN_WIDTH/2F, SCREEN_HEIGHT/2F);
         stage = new Stage(viewport);
+
         Gdx.input.setInputProcessor(stage);
+
 
         clickSound = Gdx.audio.newSound(Gdx.files.internal("sound/clickSound.wav"));
         skyTexture = new Texture(Gdx.files.internal("SKY.png"));
@@ -279,11 +294,13 @@ public class MenuScreen implements Screen{
         frogButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                skin = 0;
+//                skin = 0;
                 levelTransition.startFade(() -> {
                     game.setScreen(new LevelScreen(game));
                     music.dispose();
                 });
+                frogButton.setVisible(false);
+                mdButton.setVisible(false);
             }
         });
         TextureRegionDrawable mdButUp = new TextureRegionDrawable(new Texture("buttons/maskDudeButton.png"));
@@ -299,11 +316,13 @@ public class MenuScreen implements Screen{
         mdButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                skin = 1;
+//                skin = 1;
                 levelTransition.startFade(() -> {
                     game.setScreen(new LevelScreen(game));
                     music.dispose();
                 });
+                frogButton.setVisible(false);
+                mdButton.setVisible(false);
             }
         });
 
@@ -350,6 +369,8 @@ public class MenuScreen implements Screen{
         music.setVolume(0.04F*2);
         music.setLooping(true);
         music.play();
+
+
     }
 
     @Override
@@ -384,7 +405,10 @@ public class MenuScreen implements Screen{
             stage.dispose();
             clickSound.play(0.4F);
         }
+
+
     }
+
 
     @Override
     public void resize(int width, int height) {

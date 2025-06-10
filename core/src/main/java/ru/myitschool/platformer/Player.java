@@ -83,6 +83,8 @@ public class Player extends Actor {
     private boolean touchingGround;
 
 
+
+
     public Player(Texture texture, ImageButton leftButton, ImageButton rightButton, ImageButton upButton, float playerX, float playerY, Label CoinLabel, int maxHealth) {
         this.playerTextureRegion = new TextureRegion(texture);
         this.leftButton = leftButton;
@@ -115,40 +117,10 @@ public class Player extends Actor {
         hitBox = new Polygon(vertices);
 
 
-        rightButton.addListener(new ClickListener() {
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                velocity.x = SPEED;
-                return super.touchDown(event, x, y, pointer, button);
-            }
 
-            @Override
-            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                velocity.x = 0;
-                super.touchUp(event, x, y, pointer, button);
-            }
-        });
-        leftButton.addListener(new ClickListener() {
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                velocity.x = -SPEED;
-                return super.touchDown(event, x, y, pointer, button);
-            }
 
-            @Override
-            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                velocity.x = 0;
-                super.touchUp(event, x, y, pointer, button);
-            }
-        });
-        upButton.addListener(new ClickListener() {
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                jumpBufferTime = 0;
 
-                return super.touchDown(event, x, y, pointer, button);
-            }
-        });
+
 
 
         frogIdleAnimation = createFrogIdleAnimation();
@@ -164,6 +136,7 @@ public class Player extends Actor {
     @Override
     public void act(float delta) {
         super.act(delta);
+
         if (isInvincible) {
             invincibilityTimer -= delta;
             if (invincibilityTimer <= 0) {
@@ -197,7 +170,10 @@ public class Player extends Actor {
         checkOverlap();
         setPlayerTextureRegion();
 
+
+
     }
+
     public void takeDamage(int damage) {
         if (!isInvincible) {
             currentHealth -= damage;
@@ -238,37 +214,78 @@ public class Player extends Actor {
 //            }
 //        }
 //    }
+    public void handleInput(){
+        rightButton.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                velocity.x = SPEED;
+                return super.touchDown(event, x, y, pointer, button);
+            }
 
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                velocity.x = 0;
+                super.touchUp(event, x, y, pointer, button);
+            }
+        });
+        leftButton.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                velocity.x = -SPEED;
+                return super.touchDown(event, x, y, pointer, button);
+            }
 
-    private void setPlayerTextureRegion(){
-        if(rightButton.isPressed()){
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                velocity.x = 0;
+                super.touchUp(event, x, y, pointer, button);
+            }
+        });
+        upButton.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                jumpBufferTime = 0;
+
+                return super.touchDown(event, x, y, pointer, button);
+            }
+        });
+        if (rightButton.isPressed()) {
             facingRight = true;
             isMoving = true;
-        }else if(leftButton.isPressed()){
-            facingRight= false;
+        } else if (leftButton.isPressed()) {
+            facingRight = false;
             isMoving = true;
-        }else{isMoving = false;}
-        if(!isDamagedTextureActive) {
-            if (isMoving) {
-                if(skin==0){playerTextureRegion = frogRunAnimation.getKeyFrame(frogStateTime, true);}
-                else if(skin == 1){playerTextureRegion = mdRunAnimation.getKeyFrame(mdStateTime, true);}
-                if (!facingRight && !playerTextureRegion.isFlipX()) {
-                    playerTextureRegion.flip(true, false);
-                    facingRight = false;
-                } else if (facingRight && playerTextureRegion.isFlipX()) {
-                    playerTextureRegion.flip(true, false);
-                    facingRight = true;
+        } else {
+            isMoving = false;
+        }
+    }
+
+    private void setPlayerTextureRegion(){
+            if (!isDamagedTextureActive) {
+                if (isMoving) {
+                    if (skin == 0) {playerTextureRegion = frogRunAnimation.getKeyFrame(frogStateTime, true);}
+                    else if (skin == 1) {playerTextureRegion = mdRunAnimation.getKeyFrame(mdStateTime, true);}
+
+                    if (!facingRight && !playerTextureRegion.isFlipX()) {
+                        playerTextureRegion.flip(true, false);
+                        facingRight = false;
+                    } else if (facingRight && playerTextureRegion.isFlipX()) {
+                        playerTextureRegion.flip(true, false);
+                        facingRight = true;
+                    }
+                }
+
+                if (!isMoving && isStand) {
+                    if (skin == 0) {playerTextureRegion = frogIdleAnimation.getKeyFrame(frogStateTime, true);}
+                    else if (skin == 1) {playerTextureRegion = mdIdleAnimation.getKeyFrame(mdStateTime, true);}
+
+                    if (!facingRight && !playerTextureRegion.isFlipX()) {
+                        playerTextureRegion.flip(true, false);
+                    } else if (facingRight && playerTextureRegion.isFlipX()) {
+                        playerTextureRegion.flip(true, false);
+                    }
                 }
             }
-
-            if (!isMoving && isStand) {
-                if(skin==0){ playerTextureRegion = frogIdleAnimation.getKeyFrame(frogStateTime, true);}
-                else if(skin == 1){playerTextureRegion = mdIdleAnimation.getKeyFrame(mdStateTime, true);}
-                if (!facingRight && !playerTextureRegion.isFlipX()) {playerTextureRegion.flip(true, false);}
-                else if (facingRight && playerTextureRegion.isFlipX()) {playerTextureRegion.flip(true, false);}
-            }
-        }
-
 
     }
     private void setHitTexture() {
@@ -303,6 +320,12 @@ public class Player extends Actor {
     }
     public int getSkin() {
         return skin;
+    }
+    public boolean getFacingRight(){
+        return facingRight;
+    }
+    public void setFacingRight(boolean facingRight){
+        this.facingRight = facingRight;
     }
 
 

@@ -32,12 +32,13 @@ public class MyServer {
             public void received(Connection connection, Object object) {
                 if (object instanceof MyRequest) {
                     lastRequest = (MyRequest) object;
-                    Gdx.app.log("SERVER", "Received from client: " + lastRequest.x + "," + lastRequest.y);
+//                    Gdx.app.log("SERVER", "Received from client: " + lastRequest.x + "," + lastRequest.y);
                 }
             }
         });
+
         try {
-            server.bind(54555, 54555);
+            server.bind(54556, 54778);
             server.update(250);
             server.start();
         } catch (IOException e) {
@@ -51,13 +52,18 @@ public class MyServer {
         lastRequest = null; // Очищаем после чтения
         return req;
     }
-    public void updateServerPlayer(float x, float y, int skin) {
-        serverResponse = new MyResponse(x, y, skin);
+    public void updateServerPlayer(float x, float y, int skin, boolean facingRight) {
+        serverResponse = new MyResponse(x, y, skin, facingRight);
         server.sendToAllTCP(serverResponse);
-        Gdx.app.log("SERVER", "Sent server position: " + x + "," + y);
+//        Gdx.app.log("SERVER", "Sent server position: " + x + "," + y);
     }
 
     public void stop() {
-        server.stop();
+        if (server != null) {
+            server.stop();
+            try {
+                Thread.sleep(500); // Короткая пауза
+            } catch (InterruptedException ignored) {}
+        }
     }
 }

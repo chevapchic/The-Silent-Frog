@@ -31,7 +31,7 @@ public class MyClient {
         kryoClient.register(MyResponse.class);
 
         try{
-            host = client.discoverHost(54555, 20000);
+            host = client.discoverHost(54778, 20000);
         }catch(Exception e){  }
         client.addListener(new Listener() {
             @Override
@@ -39,8 +39,8 @@ public class MyClient {
                 if (object instanceof MyResponse) {
                     lastResponse = (MyResponse) object;
                     Gdx.app.log("CLIENT", "Received from server: " + lastResponse.x + "," + lastResponse.y);
-            }
-        }});
+                }
+            }});
         client.addListener(new Listener() {
             @Override
             public void disconnected(Connection connection) {
@@ -50,7 +50,7 @@ public class MyClient {
         new Thread(() -> {
             try {
                 client.start();
-                client.connect(5000, host, 54555, 54555);
+                client.connect(5000, host, 54556, 54778);
             } catch (IOException e) {
                 Gdx.app.error("CLIENT", "Connection failed: " + e.getMessage());
             }
@@ -62,8 +62,8 @@ public class MyClient {
         return lastResponse;
     }
 
-    public void sendPosition(float x, float y, int skin) {
-        MyRequest request = new MyRequest(x, y, skin);
+    public void sendPosition(float x, float y, int skin, boolean facingRight) {
+        MyRequest request = new MyRequest(x, y, skin, facingRight);
         client.sendTCP(request);
         Gdx.app.log("CLIENT", "Sent client position: " + x + "," + y);
     }

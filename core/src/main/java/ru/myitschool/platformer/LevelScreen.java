@@ -44,6 +44,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import java.awt.Menu;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -62,8 +63,8 @@ public class LevelScreen implements Screen {
     private Stage UIStage;
     private Stage skyStage;
     private FitViewport viewport;
-    private Player player;
-    private Player player2;
+    private static Player player;
+    private static Player player2;
     private Integer maxMapSize;
     private Texture playerTexture;
     private ImageButton rightButton;
@@ -107,8 +108,8 @@ public class LevelScreen implements Screen {
     private String ipAddressOfServer = "?";
     MyServer server;
     MyClient client;
-    boolean isServer;
-    boolean isClient;
+    static boolean isServer;
+    static boolean isClient;
     MyRequest requestFromClient;
     MyResponse responseFromServer;
     private ImageButton createServerBut;
@@ -377,31 +378,32 @@ public class LevelScreen implements Screen {
 
         if (isServer) {
             // Отправляем свои координаты
-            server.updateServerPlayer(player.getX(), player.getY(), player.getSkin());
+            server.updateServerPlayer(player.getX(), player.getY(), player.getSkin(), player.getFacingRight());
             MyRequest request = server.getRequest();
-            if(request!= null) {
-//                player2.setPosition(request.x, request.y);
-//                player2.setSkin(request.skin);
+            player.handleInput();
 
+            if(request!= null) {
                 player2.playerX += (request.x - player2.playerX) * LERP_SPEED;
                 player2.playerY += (request.y - player2.playerY) * LERP_SPEED;
                 player2.setPosition(player2.playerX, player2.playerY);
                 player2.setSkin(request.skin);
+                player2.setFacingRight(request.facingRight);
             }
         } else if (isClient) {
             // Отправляем свои координаты
-            client.sendPosition(player2.getX(), player2.getY(), player2.getSkin());
+            client.sendPosition(player2.getX(), player2.getY(), player2.getSkin(), player2.getFacingRight());
             // Получаем данные сервера
             player2.setSkin(skin);
             MyResponse response = client.getResponse();
-            if (response != null) {
-//                player.setPosition(response.x, response.y);
-//                player.setSkin(response.skin);
+            player2.handleInput();
 
+
+            if (response != null) {
                 player.playerX += (response.x - player.playerX) * LERP_SPEED;
                 player.playerY += (response.y - player.playerY) * LERP_SPEED;
                 player.setPosition(player.playerX, player.playerY);
                 player.setSkin(response.skin);
+                player.setFacingRight(response.facingRight);
             }
         }
 
@@ -468,6 +470,7 @@ public class LevelScreen implements Screen {
     }
 
 
+
     public void updateCamera(Camera camera){
 
         if(isServer) {
@@ -506,7 +509,7 @@ public class LevelScreen implements Screen {
                     new Thread(() -> {
                         try {
                             MyGame.server = new MyServer(MyGame.responseFromServer);
-                            MyGame.ipAddressOfServer = detectIP();
+//                            MyGame.ipAddressOfServer = detectIP();
                             Gdx.app.postRunnable(() -> {
                                 MyGame.isServer = true;
                                 levelTransition.startFade(() -> {
@@ -534,14 +537,14 @@ public class LevelScreen implements Screen {
                     new Thread(() -> {
                         try {
                             MyGame.client = new MyClient(MyGame.requestFromClient);
-                            String hostAddress = MyGame.client.getIp().getHostAddress();
+//                            String hostAddress = MyGame.client.getIp().getHostAddress();
                             Gdx.app.postRunnable(() -> {
                                 if(MyGame.client.isCantConnected) {
                                     MyGame.client = null;
                                     MyGame.ipAddressOfServer = "Server not found";
                                 } else {
                                     MyGame.isClient = true;
-                                    MyGame.ipAddressOfServer = hostAddress;
+//                                    MyGame.ipAddressOfServer = hostAddress;
                                     levelTransition.startFade(() -> {
                                         game.setScreen(new LevelScreen(game));
                                         music.dispose();
@@ -557,29 +560,29 @@ public class LevelScreen implements Screen {
         });
         UIStage.addActor(createClientBut);
     }
-    public String detectIP() {
-        try {
-            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            while (interfaces.hasMoreElements()) {
-                NetworkInterface networkInterface = interfaces.nextElement();
-                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
-                while (addresses.hasMoreElements()) {
-                    InetAddress address = addresses.nextElement();
-                    if (!address.isLinkLocalAddress() && !address.isLoopbackAddress() && address.getHostAddress().indexOf(":") == -1) {
-                        MyGame.ipAddress = address;
-                        //System.out.println("IP-адрес устройства: " + ipAddress.getHostAddress());
-                    }
-                }
-            }
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-
-        if(MyGame.ipAddress != null){
-            return MyGame.ipAddress.getHostAddress();
-        }
-        return "";
-    }
+//    public String detectIP() {
+//        try {
+//            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+//            while (interfaces.hasMoreElements()) {
+//                NetworkInterface networkInterface = interfaces.nextElement();
+//                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+//                while (addresses.hasMoreElements()) {
+//                    InetAddress address = addresses.nextElement();
+//                    if (!address.isLinkLocalAddress() && !address.isLoopbackAddress() && address.getHostAddress().indexOf(":") == -1) {
+//                        MyGame.ipAddress = address;
+//                        //System.out.println("IP-адрес устройства: " + ipAddress.getHostAddress());
+//                    }
+//                }
+//            }
+//        } catch (SocketException e) {
+//            e.printStackTrace();
+//        }
+//
+//        if(MyGame.ipAddress != null){
+//            return MyGame.ipAddress.getHostAddress();
+//        }
+//        return "";
+//    }
 
     @Override
     public void resize(int width, int height) {
@@ -592,7 +595,21 @@ public class LevelScreen implements Screen {
 
     @Override
     public void pause() {
-
+        if (server != null) {
+            server.stop();
+        }
+        if (client != null) {
+            client.stop();
+        }
+        // Освобождение остальных ресурсов
+        deathSound.dispose();
+        music.dispose();
+        skyTexture.dispose();
+        coinTexture.dispose();
+        playerTexture.dispose();
+        stage.dispose();
+        UIStage.dispose();
+        skyStage.dispose();
     }
 
     @Override
@@ -607,9 +624,22 @@ public class LevelScreen implements Screen {
 
     @Override
     public void dispose() {
+        if (server != null) {
+            server.stop();
+        }
+        if (client != null) {
+            client.stop();
+        }
+        // Освобождение остальных ресурсов
         deathSound.dispose();
+        music.dispose();
+        skyTexture.dispose();
+        coinTexture.dispose();
+        playerTexture.dispose();
+        stage.dispose();
+        UIStage.dispose();
+        skyStage.dispose();
     }
-
     private void createCoins(){
         coinTexture = new Texture("spinning coin_0.png");
         coins = new ArrayList<>();

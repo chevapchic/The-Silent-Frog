@@ -49,7 +49,9 @@ public class MenuScreen implements Screen{
     private ImageButton L4Button;
     private ImageButton aboutButton;
     private ImageButton frogButton;
-    private ImageButton mdButton;
+    private ImageButton mdButton; //maskdude
+    private ImageButton spButton; //singleplayer
+    private ImageButton mpButton; //multiplayer
 
 
     private Stage stage;
@@ -297,12 +299,10 @@ public class MenuScreen implements Screen{
             public void changed(ChangeEvent event, Actor actor) {
                 skin = 0;
                 skin1 = 0;
-                levelTransition.startFade(() -> {
-                    game.setScreen(new LevelScreen(game));
-                    music.dispose();
-                });
                 frogButton.setVisible(false);
                 mdButton.setVisible(false);
+                mpButton.setVisible(true);
+                spButton.setVisible(true);
             }
         });
         TextureRegionDrawable mdButUp = new TextureRegionDrawable(new Texture("buttons/maskDudeButton.png"));
@@ -320,14 +320,55 @@ public class MenuScreen implements Screen{
             public void changed(ChangeEvent event, Actor actor) {
                 skin = 1;
                 skin1 = 1;
+                frogButton.setVisible(false);
+                mdButton.setVisible(false);
+                mpButton.setVisible(true);
+                spButton.setVisible(true);
+            }
+        });
+
+
+        TextureRegionDrawable spButUp = new TextureRegionDrawable(new Texture("buttons/singleplayer.png"));
+        TextureRegionDrawable spButDown = new TextureRegionDrawable(new Texture("buttons/singleplayer.png"));
+        spButton = new ImageButton(spButUp, spButDown);
+        spButUp.setMinHeight(spButton.getHeight() * 2F);
+        spButUp.setMinWidth(spButton.getWidth() * 2F);
+        spButDown.setMinHeight(spButton.getHeight() * 1.9F);
+        spButDown.setMinWidth(spButton.getWidth() * 1.9F);
+        spButton.setSize(spButton.getWidth()*2F, spButton.getHeight() *2F);
+        spButton.setPosition(stage.getViewport().getWorldWidth()/2f-spButton.getWidth()/2f, L1Button.getY()+25);
+        spButton.setVisible(false);
+        spButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
                 levelTransition.startFade(() -> {
                     game.setScreen(new LevelScreen(game));
                     music.dispose();
                 });
-                frogButton.setVisible(false);
-                mdButton.setVisible(false);
             }
         });
+
+        TextureRegionDrawable mpButUp = new TextureRegionDrawable(new Texture("buttons/multiplayer.png"));
+        TextureRegionDrawable mpButDown = new TextureRegionDrawable(new Texture("buttons/multiplayer.png"));
+        mpButton = new ImageButton(mpButUp, mpButDown);
+        mpButUp.setMinHeight(mpButton.getHeight() * 2F);
+        mpButUp.setMinWidth(mpButton.getWidth() * 2F);
+        mpButDown.setMinHeight(mpButton.getHeight() * 1.9F);
+        mpButDown.setMinWidth(mpButton.getWidth() * 1.9F);
+        mpButton.setSize(mpButton.getWidth()*2F, mpButton.getHeight() *2F);
+        mpButton.setPosition(stage.getViewport().getWorldWidth()/2f-mpButton.getWidth()/2f, spButton.getY()- mdButton.getHeight()*0.8f);
+        mpButton.setVisible(false);
+        mpButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                MyGame.isMultiPlayer = true;
+                levelTransition.startFade(() -> {
+                    game.setScreen(new LevelScreen(game));
+                    music.dispose();
+                });
+            }
+        });
+
 
         FileHandle fontFile = Gdx.files.internal("my/alagard-12px-unicode.ttf");
         FileHandle fontFile2 = Gdx.files.internal("my/DynaPuff.ttf");
@@ -367,6 +408,8 @@ public class MenuScreen implements Screen{
         stage.addActor(aboutLabel);
         stage.addActor(frogButton);
         stage.addActor(mdButton);
+        stage.addActor(spButton);
+        stage.addActor(mpButton);
 
         music = Gdx.audio.newMusic(Gdx.files.internal("sound/Menu.mp3"));
         music.setVolume(0.04F*2);

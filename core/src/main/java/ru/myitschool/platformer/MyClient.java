@@ -47,6 +47,14 @@ public class MyClient {
                 System.out.println("Соединение закрыто!");
             }
         });
+        client.addListener(new Listener(){
+            @Override
+            public void connected(Connection connection) {
+                MyGame.clientConnected = true;
+                super.connected(connection);
+
+            }
+        });
         new Thread(() -> {
             try {
                 client.start();

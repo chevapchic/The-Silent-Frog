@@ -13,6 +13,8 @@ public class MyGame extends Game {
     public static boolean isLevel2Available = false;
     public static boolean isLevel3Available = false;
     public static boolean isLevel4Available = false;
+    public static boolean isMultiPlayer;
+    public static boolean clientConnected;
     static InetAddress ipAddress;
     static String ipAddressOfServer = "?";
     static MyServer server;
@@ -21,6 +23,7 @@ public class MyGame extends Game {
     static boolean isClient;
     static MyRequest requestFromClient;
     static MyResponse responseFromServer;
+
     @Override
     public void create() {
         setScreen(new MenuScreen(this));

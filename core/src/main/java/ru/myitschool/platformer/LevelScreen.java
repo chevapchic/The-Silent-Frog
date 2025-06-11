@@ -103,6 +103,8 @@ public class LevelScreen implements Screen {
     private LevelTransition levelTransition;
     private CameraShake cameraShake;
 
+    private int deathCount;
+
     //сеть
     private InetAddress ipAddress;
     private String ipAddressOfServer = "?";
@@ -437,36 +439,41 @@ public class LevelScreen implements Screen {
         }
 
 
-        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
-        minutes = (int) (elapsedTime / 60); // Целые минуты
-        seconds = (int) (elapsedTime % 60); // Секунды (остаток от деления на 60)
-        milliseconds = (int) ((elapsedTime * 100) % 100);
-        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
-        timeLabel.setText(timeString);
-        MyGame.elapsedTime = elapsedTime;
-
+//        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
+//        minutes = (int) (elapsedTime / 60); // Целые минуты
+//        seconds = (int) (elapsedTime % 60); // Секунды (остаток от деления на 60)
+//        milliseconds = (int) ((elapsedTime * 100) % 100);
+//        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
+//        timeLabel.setText(timeString);
+//        MyGame.elapsedTime = elapsedTime;
+        if(deathCount>10){
+            levelTransition.startFade(() -> {
+                game.setScreen(new LevelScreen(game));
+                music.dispose();
+            });
+        }
 
         if(player.getY()<-256){
             player.die();
+            deathCount++;
         }
+
         if(player2.getY()<-256){
             player2.die();
+            deathCount++;
         }
-        if(playerX>2100 && playerY<-100){
+        if((player.getX()>2100 && player.getY()<-100) || (player2.getX()>2100 && player2.getY()<-100)){
             levelTransition.startFade(() -> {
                 game.setScreen(new Level2Screen(game));
                 MyGame.newScore = score;
-
                 MyGame.isLevel2Available = true;
                 music.dispose();
-
             });
-
         }
 
 
         updateCamera(stage.getCamera());
-        Matrix4 skyProjection = stage.getCamera().combined.cpy(); // Копия матрицы камеры
+        Matrix4 skyProjection = stage.getCamera().combined.cpy();
         float parallax = 0.5F;
         skyProjection.translate(-stage.getCamera().position.x * (1 - parallax), -stage.getCamera().position.y * (1 - parallax), 0);
 
@@ -610,14 +617,7 @@ public class LevelScreen implements Screen {
             client.stop();
         }
         // Освобождение остальных ресурсов
-        deathSound.dispose();
-        music.dispose();
-        skyTexture.dispose();
-        coinTexture.dispose();
-        playerTexture.dispose();
-        stage.dispose();
-        UIStage.dispose();
-        skyStage.dispose();
+
     }
 
     @Override
@@ -639,14 +639,7 @@ public class LevelScreen implements Screen {
             client.stop();
         }
         // Освобождение остальных ресурсов
-        deathSound.dispose();
-        music.dispose();
-        skyTexture.dispose();
-        coinTexture.dispose();
-        playerTexture.dispose();
-        stage.dispose();
-        UIStage.dispose();
-        skyStage.dispose();
+
     }
     private void createCoins(){
         coinTexture = new Texture("spinning coin_0.png");
@@ -730,16 +723,13 @@ public class LevelScreen implements Screen {
         }
 
         public void draw(Batch batch, float parentAlpha) {
-            // Вычисляем смещение
+
             float offset = scrollX % layerWidth;
 
-            // Отрисовываем текстуру с повторением (две копии, чтобы избежать пробелов)
             batch.draw(texture, -offset, 0, layerWidth, layerHeight, 0, 0, texture.getWidth(), texture.getHeight(), false, false);
             batch.draw(texture, -offset + layerWidth, 0, layerWidth, layerHeight, 0, 0, texture.getWidth(), texture.getHeight(), false, false);
-
-            // Если ширина экрана больше ширины текстуры, отрисовываем дополнительные копии
             if (layerWidth < SCREEN_WIDTH) {
-                float additionalOffset = -offset + 2 * layerWidth; //Сдвигаем на ширину еще одной текстуры
+                float additionalOffset = -offset + 2 * layerWidth;
                 batch.draw(texture, additionalOffset, 0, layerWidth, layerHeight, 0, 0, texture.getWidth(), texture.getHeight(), false, false);
             }
         }

@@ -141,6 +141,8 @@ public class SlimeEnemy extends Actor {
             getScaleY()*2.25F,
             getRotation()
         );
+
+
     }
 
     public Polygon getHitBox() {

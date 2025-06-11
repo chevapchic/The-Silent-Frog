@@ -81,7 +81,7 @@ public class Player extends Actor {
     public static boolean isScreenShaking = false;
     private int skin;//0 - frog, 1 - maskDude
     private boolean touchingGround;
-
+    float lerpSpeed = 0.1f;
 
 
 
@@ -115,13 +115,6 @@ public class Player extends Actor {
             getWidth(), 0
         };
         hitBox = new Polygon(vertices);
-
-
-
-
-
-
-
 
         frogIdleAnimation = createFrogIdleAnimation();
         frogRunAnimation = createFrogRunAnimation();
@@ -160,8 +153,14 @@ public class Player extends Actor {
         }
         jump();
         timer += delta;
+
         velocity.y += GRAVITY*delta;
-        moveBy(velocity.x*delta, velocity.y*delta);
+        float targetVelX = velocity.x;
+        float targetVelY = velocity.y;
+        velocity.x += (targetVelX - velocity.x) * lerpSpeed;
+        velocity.y += (targetVelY - velocity.y) * lerpSpeed;
+        moveBy(velocity.x * delta, velocity.y * delta);
+
         hitBox.setPosition(getX(), getY());
         frogStateTime += 1.2F* delta;
         mdStateTime += 1.2F* delta;
@@ -177,6 +176,7 @@ public class Player extends Actor {
     public void takeDamage(int damage) {
         if (!isInvincible) {
             currentHealth -= damage;
+            deathSound.stop();
             deathSound.play(0.4f);
             if (currentHealth < 1) {
                 currentHealth = 0;
@@ -200,6 +200,7 @@ public class Player extends Actor {
     private void jump() {
         if (isStand &&  (jumpBufferTime < jumpBufferDuration)) {
             velocity.y = JUMP;
+            jumpSound.stop();
             jumpSound.play(0.15F);
             jumpBufferTime = jumpBufferDuration;
         }
@@ -386,14 +387,20 @@ public class Player extends Actor {
         }
     }
     public void die(){
-        setPosition(100,1000);
+        setPosition(100,500);
         currentHealth = maxHealth;
         velocity.y = 0;
+        velocity.x = 0;
+        deathSound.stop();
         deathSound.play(0.4F);
+    }
+    public void heal(){
+        currentHealth = maxHealth;
     }
 
     public void playCoinPickup() {
         if (TimeUtils.timeSinceMillis(lastCoinPickupTime) > coinPickupInterval) {
+            coinSound.stop();
             coinSound.play(0.3f*2,1, 2);
             lastCoinPickupTime = TimeUtils.millis();
         }
@@ -513,6 +520,7 @@ public class Player extends Actor {
             getScaleY(),
             getRotation()
         );
+
 
 
     }

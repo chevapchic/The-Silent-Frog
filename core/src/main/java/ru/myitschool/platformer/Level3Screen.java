@@ -1,5 +1,6 @@
 package ru.myitschool.platformer;
 
+import static ru.myitschool.platformer.MenuScreen.skin;
 import static ru.myitschool.platformer.MyGame.SCREEN_HEIGHT;
 import static ru.myitschool.platformer.MyGame.SCREEN_WIDTH;
 import static ru.myitschool.platformer.MyGame.newScore;
@@ -39,6 +40,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -102,10 +104,30 @@ public class Level3Screen implements Screen{
     private LevelTransition levelTransition;
     private CameraShake cameraShake;
 
+    //сеть
+    private InetAddress ipAddress;
+    private String ipAddressOfServer = "?";
+    MyServer server;
+    MyClient client;
+    static boolean isServer;
+    static boolean isClient;
+    MyRequest requestFromClient;
+    MyResponse responseFromServer;
+    private ImageButton createServerBut;
+    private ImageButton createClientBut;
+    private static final float LERP_SPEED = 0.2f;
+    private Player player2;
+    private float playerX2;
+    private  float playerY2;
+    private int deathCount;
 
 
     public Level3Screen(Game game) {
         this.game = game;
+        this.server = MyGame.server;
+        this.client = MyGame.client;
+        this.isServer = MyGame.isServer;
+        this.isClient = MyGame.isClient;
         levelTransition = new LevelTransition();
     }
 
@@ -276,7 +298,15 @@ public class Level3Screen implements Screen{
         player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
         player.setPosition(400, 256);
         stage.addActor(player);
+        player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3);
+
+        if(MyGame.isMultiPlayer && (isServer || isClient)) {
+            stage.addActor(player2);
+        }
+
         player.setZIndex(2);
+
+
 //        player.setPosition(500,400);
 
 
@@ -331,14 +361,58 @@ public class Level3Screen implements Screen{
         ScreenUtils.clear(Color.CLEAR);
         scrollX += 20 * delta;
 
-        if(playerY<0){
-            player.setPosition(400, 256);
+        if(!MyGame.isMultiPlayer){
+            player.handleInput();
+        }
+
+        if(MyGame.isMultiPlayer) {
+            if (isServer || isClient) {
+                createServerBut.setVisible(false);
+                createClientBut.setVisible(false);
+            }
+
+            if (isServer) {
+                // Отправляем свои координаты
+                server.updateServerPlayer(player.getX(), player.getY(), player.getSkin(), player.getFacingRight());
+                MyRequest request = server.getRequest();
+                player.handleInput();
+                if (request != null) {
+                    player2.playerX += (request.x - player2.playerX) * LERP_SPEED;
+                    player2.playerY += (request.y - player2.playerY) * LERP_SPEED;
+                    player2.setPosition(player2.playerX, player2.playerY);
+                    player2.setSkin(request.skin);
+                    player2.setFacingRight(request.facingRight);
+                }
+            } else if (isClient) {
+                // Отправляем свои координаты
+                client.sendPosition(player2.getX(), player2.getY(), player2.getSkin(), player2.getFacingRight());
+                // Получаем данные сервера
+                player2.setSkin(skin);
+                MyResponse response = client.getResponse();
+                player2.handleInput();
+                if (response != null) {
+                    player.playerX += (response.x - player.playerX) * LERP_SPEED;
+                    player.playerY += (response.y - player.playerY) * LERP_SPEED;
+                    player.setPosition(player.playerX, player.playerY);
+                    player.setSkin(response.skin);
+                    player.setFacingRight(response.facingRight);
+                }
+            }
+        }
+
+        if(player.getY()<-256){
+            player.die();
+            deathCount++;
+        }
+        if(player2.getY()<-256){
+            player2.die();
+            deathCount++;
         }
         if(Player.isScreenShaking){
             shakeCamera(5,0.3f);
             Player.isScreenShaking = false;
         }
-        if(playerX>400 && playerY>=2656){
+        if(player.getX()>400 && player.getY()>=2656 || player2.getX()>400 && player2.getY()>=2656 ){
             levelTransition.startFade(() -> {
                 game.setScreen(new Level4Screen(game));
                 MyGame.newScore = score;
@@ -347,15 +421,16 @@ public class Level3Screen implements Screen{
             });
         }
 
+
         healthLabel.setText("Health:" + String.valueOf(player.getCurrentHealth()));
 
-        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
-        int minutes = (int) (elapsedTime / 60);
-        int seconds = (int) (elapsedTime % 60);
-        int milliseconds = (int) ((elapsedTime * 100) % 100);
-        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
-        timeLabel.setText(timeString);
-        MyGame.elapsedTime = elapsedTime;
+//        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
+//        int minutes = (int) (elapsedTime / 60);
+//        int seconds = (int) (elapsedTime % 60);
+//        int milliseconds = (int) ((elapsedTime * 100) % 100);
+//        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
+//        timeLabel.setText(timeString);
+//        MyGame.elapsedTime = elapsedTime;
 
         updateCamera(stage.getCamera());
         Matrix4 skyProjection = stage.getCamera().combined.cpy();
@@ -401,14 +476,37 @@ public class Level3Screen implements Screen{
 
     }
     private void updateCamera(Camera camera){
-        playerX = player.getX() + player.getWidth()/2;
-        playerY = player.getY() + player.getWidth()/2;
-        targetPosition = new Vector3();
-        targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH/4F , maxMapSize - SCREEN_WIDTH/4F), playerY+100, 0);
-        camera.position.y = camera.position.y-10;
-        camera.position.lerp(targetPosition, lerpSpeed);
-        tiledMapRenderer.setView((OrthographicCamera) camera);
-        camera.position.x = 32*32/2F;
+        if(MyGame.isMultiPlayer) {
+            if (isServer) {
+                playerX = player.getX() + player.getWidth() / 2;
+                playerY = player.getY() + player.getWidth() / 2;
+                cameraShake.update(Gdx.graphics.getDeltaTime());
+                targetPosition = new Vector3();
+                targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
+                camera.position.y = camera.position.y - 10;
+                camera.position.lerp(targetPosition, lerpSpeed);
+                tiledMapRenderer.setView((OrthographicCamera) camera);
+            }
+            if (isClient) {
+                playerX2 = player2.getX() + player2.getWidth() / 2;
+                playerY2 = player2.getY() + player2.getWidth() / 2;
+                cameraShake.update(Gdx.graphics.getDeltaTime());
+                targetPosition = new Vector3();
+                targetPosition.set(MathUtils.clamp(playerX2, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY2 + 100, 0);
+                camera.position.y = camera.position.y - 10;
+                camera.position.lerp(targetPosition, lerpSpeed);
+                tiledMapRenderer.setView((OrthographicCamera) camera);
+            }
+        }else{
+            playerX = player.getX() + player.getWidth() / 2;
+            playerY = player.getY() + player.getWidth() / 2;
+            cameraShake.update(Gdx.graphics.getDeltaTime());
+            targetPosition = new Vector3();
+            targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
+            camera.position.y = camera.position.y - 10;
+            camera.position.lerp(targetPosition, lerpSpeed);
+            tiledMapRenderer.setView((OrthographicCamera) camera);
+        }
     }
     private void createCoins(){
         coinTexture = new Texture("spinning coin_0.png");
@@ -448,8 +546,23 @@ public class Level3Screen implements Screen{
         }
     };
 
+
     @Override
     public void dispose() {
+        if (server != null) {
+            server.stop();
+        }
+        if (client != null) {
+            client.stop();
+        }
+        // Освобождение остальных ресурсов
+        deathSound.dispose();
+        music.dispose();
+        skyTexture.dispose();
+        coinTexture.dispose();
+        stage.dispose();
+        UIStage.dispose();
+        skyStage.dispose();
 
     }
     class Sky extends Actor {

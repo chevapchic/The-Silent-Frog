@@ -1,5 +1,6 @@
 package ru.myitschool.platformer;
 
+import static ru.myitschool.platformer.MenuScreen.skin;
 import static ru.myitschool.platformer.MyGame.SCREEN_HEIGHT;
 import static ru.myitschool.platformer.MyGame.SCREEN_WIDTH;
 import static ru.myitschool.platformer.MyGame.newScore;
@@ -40,6 +41,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -104,9 +106,30 @@ public class Level2Screen implements Screen{
     private boolean isMusicPlaying;
     private CameraShake cameraShake;
 
+    //сеть
+    private InetAddress ipAddress;
+    private String ipAddressOfServer = "?";
+    MyServer server;
+    MyClient client;
+    static boolean isServer;
+    static boolean isClient;
+    MyRequest requestFromClient;
+    MyResponse responseFromServer;
+    private ImageButton createServerBut;
+    private ImageButton createClientBut;
+    private static final float LERP_SPEED = 0.2f;
+    private Player player2;
+    private float playerX2;
+    private  float playerY2;
+    private int deathCount;
+
 
     public Level2Screen(Game game) {
         this.game = game;
+        this.server = MyGame.server;
+        this.client = MyGame.client;
+        this.isServer = MyGame.isServer;
+        this.isClient = MyGame.isClient;
         levelTransition = new LevelTransition();
     }
 
@@ -280,7 +303,16 @@ public class Level2Screen implements Screen{
         player.setPosition(100, 600);
 //        player.setPosition(4350, 1000);
         stage.addActor(player);
+
+        player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3);
+
+        if(MyGame.isMultiPlayer && (isServer || isClient)) {
+            stage.addActor(player2);
+        }
+
         player.setZIndex(2);
+
+        if(MyGame.isMultiPlayer){createNetButtons();}
 
 
 
@@ -355,6 +387,45 @@ public class Level2Screen implements Screen{
         ScreenUtils.clear(Color.CLEAR);
         scrollX += 20 * delta;
 
+        if(!MyGame.isMultiPlayer){
+            player.handleInput();
+        }
+
+        if(MyGame.isMultiPlayer) {
+            if (isServer || isClient) {
+                createServerBut.setVisible(false);
+                createClientBut.setVisible(false);
+            }
+
+            if (isServer) {
+                // Отправляем свои координаты
+                server.updateServerPlayer(player.getX(), player.getY(), player.getSkin(), player.getFacingRight());
+                MyRequest request = server.getRequest();
+                player.handleInput();
+                if (request != null) {
+                    player2.playerX += (request.x - player2.playerX) * LERP_SPEED;
+                    player2.playerY += (request.y - player2.playerY) * LERP_SPEED;
+                    player2.setPosition(player2.playerX, player2.playerY);
+                    player2.setSkin(request.skin);
+                    player2.setFacingRight(request.facingRight);
+                }
+            } else if (isClient) {
+                // Отправляем свои координаты
+                client.sendPosition(player2.getX(), player2.getY(), player2.getSkin(), player2.getFacingRight());
+                // Получаем данные сервера
+                player2.setSkin(skin);
+                MyResponse response = client.getResponse();
+                player2.handleInput();
+                if (response != null) {
+                    player.playerX += (response.x - player.playerX) * LERP_SPEED;
+                    player.playerY += (response.y - player.playerY) * LERP_SPEED;
+                    player.setPosition(player.playerX, player.playerY);
+                    player.setSkin(response.skin);
+                    player.setFacingRight(response.facingRight);
+                }
+            }
+        }
+
         skyStage.act(delta);
         skyStage.draw();
 
@@ -376,22 +447,27 @@ public class Level2Screen implements Screen{
             Player.isScreenShaking = false;
         }
 
-        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
-        int minutes = (int) (elapsedTime / 60);
-        int seconds = (int) (elapsedTime % 60);
-        int milliseconds = (int) ((elapsedTime * 100) % 100);
-        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
-        timeLabel.setText(timeString);
-        MyGame.elapsedTime = elapsedTime;
+//        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
+//        int minutes = (int) (elapsedTime / 60);
+//        int seconds = (int) (elapsedTime % 60);
+//        int milliseconds = (int) ((elapsedTime * 100) % 100);
+//        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
+//        timeLabel.setText(timeString);
+//        MyGame.elapsedTime = elapsedTime;
 
         updateCamera(stage.getCamera());
         Matrix4 skyProjection = stage.getCamera().combined.cpy();
         skyProjection.translate(-stage.getCamera().position.x * (1 - parallax), -stage.getCamera().position.y * (1 - parallax), 0);
 
-        if(player.getY()<100){
+        if(player.getY()<-256){
             player.die();
+            deathCount++;
         }
-        if(playerX>4380 && playerY < 150){
+        if(player2.getY()<-256){
+            player2.die();
+            deathCount++;
+        }
+        if((player.getY()>4380 && player.getX() < 150) || (player2.getX()>4380 && player2.getY()<150)){
             levelTransition.startFade(() -> {
                 game.setScreen(new Level3Screen(game));
                 MyGame.newScore = score;
@@ -400,9 +476,6 @@ public class Level2Screen implements Screen{
             });
             Player.JUMP = 650;
         }
-
-
-
     }
 
     @Override
@@ -413,6 +486,7 @@ public class Level2Screen implements Screen{
 
     @Override
     public void pause() {
+
 
     }
 
@@ -426,15 +500,115 @@ public class Level2Screen implements Screen{
 
     }
     private void updateCamera(Camera camera){
-        playerX = player.getX() + player.getWidth()/2;
-        playerY = player.getY() + player.getWidth()/2;
-        cameraShake.update(Gdx.graphics.getDeltaTime());
-        targetPosition = new Vector3();
-        targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH/4F , maxMapSize - SCREEN_WIDTH/4F), playerY+100, 0);
-        camera.position.y = camera.position.y-10;
-        camera.position.lerp(targetPosition, lerpSpeed);
-        tiledMapRenderer.setView((OrthographicCamera) camera);
+        if(MyGame.isMultiPlayer) {
+            if (isServer) {
+                playerX = player.getX() + player.getWidth() / 2;
+                playerY = player.getY() + player.getWidth() / 2;
+                cameraShake.update(Gdx.graphics.getDeltaTime());
+                targetPosition = new Vector3();
+                targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
+                camera.position.y = camera.position.y - 10;
+                camera.position.lerp(targetPosition, lerpSpeed);
+                tiledMapRenderer.setView((OrthographicCamera) camera);
+            }
+            if (isClient) {
+                playerX2 = player2.getX() + player2.getWidth() / 2;
+                playerY2 = player2.getY() + player2.getWidth() / 2;
+                cameraShake.update(Gdx.graphics.getDeltaTime());
+                targetPosition = new Vector3();
+                targetPosition.set(MathUtils.clamp(playerX2, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY2 + 100, 0);
+                camera.position.y = camera.position.y - 10;
+                camera.position.lerp(targetPosition, lerpSpeed);
+                tiledMapRenderer.setView((OrthographicCamera) camera);
+            }
+        }else{
+            playerX = player.getX() + player.getWidth() / 2;
+            playerY = player.getY() + player.getWidth() / 2;
+            cameraShake.update(Gdx.graphics.getDeltaTime());
+            targetPosition = new Vector3();
+            targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
+            camera.position.y = camera.position.y - 10;
+            camera.position.lerp(targetPosition, lerpSpeed);
+            tiledMapRenderer.setView((OrthographicCamera) camera);
+        }
+    }
+    private void createNetButtons(){
+        TextureRegionDrawable csbDrUp = new TextureRegionDrawable(new Texture("buttons/player1Button.png"));
+        TextureRegionDrawable csbDrDown = new TextureRegionDrawable(new Texture("buttons/player1Button.png"));
+        createServerBut = new ImageButton(csbDrUp, csbDrDown);
+        csbDrUp.setMinHeight(createServerBut.getHeight() * 3.8F*1.5f);
+        csbDrUp.setMinWidth(createServerBut.getWidth() * 3.8F*1.5f);
+        csbDrDown.setMinHeight(createServerBut.getHeight() * 3.6F*1.5f);
+        csbDrDown.setMinWidth(createServerBut.getWidth() * 3.6F*1.5f);
+        createServerBut.setSize(createServerBut.getWidth()* 4.8F*1.5f, createServerBut.getHeight() * 4.8F*1.5f);
+        createServerBut.setPosition(stage.getViewport().getWorldWidth()-createServerBut.getWidth(), 300);
+        createServerBut.setVisible(true);
+        createServerBut.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if(!isServer && !isClient) {
+                    createServerBut.remove();
+                    createClientBut.remove();
+                    new Thread(() -> {
+                        try {
+                            MyGame.server = new MyServer(MyGame.responseFromServer);
+                            Gdx.app.postRunnable(() -> {
+                                MyGame.isServer = true;
+                                levelTransition.startFade(() -> {
+                                    game.setScreen(new LevelScreen(game));
+                                    music.dispose();
 
+                                });
+                            });
+                        } catch (Exception e) {
+                            Gdx.app.error("SERVER", "Creation failed", e);
+                        }
+                    }).start();
+                }
+            }
+        });
+        TextureRegionDrawable ccbDrUp = new TextureRegionDrawable(new Texture("buttons/joinButton.png"));
+        TextureRegionDrawable ccbDrDown = new TextureRegionDrawable(new Texture("buttons/joinButton.png"));
+        createClientBut = new ImageButton(ccbDrUp, ccbDrDown);
+        createClientBut.setPosition(stage.getViewport().getWorldWidth()+createServerBut.getWidth(), 500);
+        ccbDrUp.setMinHeight(createClientBut.getHeight() * 3.8F*1.5f);
+        ccbDrUp.setMinWidth(createClientBut.getWidth() * 3.8F*1.5f);
+        ccbDrDown.setMinHeight(createClientBut.getHeight() * 3.6F*1.5f);
+        ccbDrDown.setMinWidth(createClientBut.getWidth() * 3.6F*1.5f);
+        createClientBut.setSize(createClientBut.getWidth()* 4.8F*1.5f, createClientBut.getHeight() * 4.8F*1.5f);
+        createClientBut.setPosition(stage.getViewport().getWorldWidth(), 300);
+        createClientBut.setVisible(true);
+        createClientBut.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if(!isServer && !isClient) {
+                    createServerBut.remove();
+                    createClientBut.remove();
+                    new Thread(() -> {
+                        try {
+                            MyGame.client = new MyClient(MyGame.requestFromClient);
+                            Gdx.app.postRunnable(() -> {
+                                if(MyGame.client.isCantConnected) {
+                                    MyGame.client = null;
+                                    MyGame.ipAddressOfServer = "Server not found";
+                                } else {
+                                    MyGame.isClient = true;
+                                    levelTransition.startFade(() -> {
+                                        game.setScreen(new LevelScreen(game));
+                                        music.dispose();
+
+                                    });
+                                }
+                            });
+                        } catch (Exception e) {
+                            Gdx.app.error("CLIENT", "Connection failed", e);
+                        }
+                    }).start();
+                }
+            }
+        });
+        UIStage.addActor(createServerBut);
+        UIStage.addActor(createClientBut);
     }
     private void createCoins(){
         coinTexture = new Texture("spinning coin_0.png");
@@ -510,6 +684,20 @@ public class Level2Screen implements Screen{
 
     @Override
     public void dispose() {
+        if (server != null) {
+            server.stop();
+        }
+        if (client != null) {
+            client.stop();
+        }
+        // Освобождение остальных ресурсов
+        deathSound.dispose();
+        music.dispose();
+        skyTexture.dispose();
+        coinTexture.dispose();
+        stage.dispose();
+        UIStage.dispose();
+        skyStage.dispose();
 
     }
     class Sky extends Actor {

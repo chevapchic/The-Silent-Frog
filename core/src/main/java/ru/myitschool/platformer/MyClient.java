@@ -31,7 +31,7 @@ public class MyClient {
         kryoClient.register(MyResponse.class);
 
         try{
-            host = client.discoverHost(54778, 20000);
+            host = client.discoverHost(54779, 20000);
         }catch(Exception e){  }
         client.addListener(new Listener() {
             @Override
@@ -58,7 +58,7 @@ public class MyClient {
         new Thread(() -> {
             try {
                 client.start();
-                client.connect(5000, host, 54556, 54778);
+                client.connect(5000, host, 54557, 54779);
             } catch (IOException e) {
                 Gdx.app.error("CLIENT", "Connection failed: " + e.getMessage());
             }

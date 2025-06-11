@@ -19,17 +19,11 @@ public class TileMapActor extends Actor {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        // Получаем Stage и камеру из Stage
         Stage stage = getStage();
-        if (stage == null) return; // Если нет Stage, то ничего не рисуем
-
+        if (stage == null) return;
         OrthographicCamera camera = (OrthographicCamera) stage.getCamera();
-        if (camera == null) return; // Если нет камеры, то ничего не рисуем
-
-        // Важно: Устанавливаем матрицу проекции для рендерера тайловой карты!
-        tiledMapRenderer.setView(camera); // Use this if it works
-
-        // Отрисовываем тайловую карту
+        if (camera == null) return;
+        tiledMapRenderer.setView(camera);
         tiledMapRenderer.render();
     }
 }

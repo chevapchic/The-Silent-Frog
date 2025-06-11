@@ -34,8 +34,8 @@ android {
     applicationId 'ru.myitschool.platformer'
     minSdkVersion 19
     targetSdkVersion 34
-    versionCode 1
-    versionName "1.0"
+    versionCode 2
+    versionName "2"
     multiDexEnabled true
   }
   compileOptions {
@@ -45,8 +45,11 @@ android {
   }
   buildTypes {
     release {
-      minifyEnabled true
+      shrinkResources = true
+      debuggable = false
+      minifyEnabled =  true
       proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+      signingConfig signingConfigs.debug
     }
   }
 }

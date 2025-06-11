@@ -72,6 +72,7 @@ public class Coin extends Actor {
             getScaleY(),
             getRotation()
         );
+
         coinTextureRegion = animation.getKeyFrame(stateTime, true);
     }
 

@@ -34,8 +34,8 @@ android {
     applicationId 'ru.myitschool.platformer'
     minSdkVersion 19
     targetSdkVersion 34
-    versionCode 2
-    versionName "2"
+    versionCode 4
+    versionName "1.04"
     multiDexEnabled true
   }
   compileOptions {

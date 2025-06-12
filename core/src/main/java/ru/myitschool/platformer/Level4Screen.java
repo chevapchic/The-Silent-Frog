@@ -342,10 +342,9 @@ public class Level4Screen implements Screen{
         Texture playerTexture = new Texture("my/frog/FrogIdle_0.png");
         player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
         player.setPosition(30, 600);
-        player.JUMP = 652;
+        Player.JUMP = 652;
         stage.addActor(player);
         player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3);
-
         if(MyGame.isMultiPlayer && (isServer || isClient)) {
             stage.addActor(player2);
         }
@@ -464,8 +463,11 @@ public class Level4Screen implements Screen{
         UIStage.act(delta);
         UIStage.draw();
 
-        healthLabel.setText("Health:" + String.valueOf(player.getCurrentHealth()));
-
+        if(isServer){
+            healthLabel.setText("Health:" + player.getCurrentHealth());
+        }else if(isClient){
+            healthLabel.setText("Health:" + player2.getCurrentHealth());
+        }
         levelTransition.render(delta);
         if (levelTransition.isTransitionComplete()) {
             Gdx.input.setInputProcessor(stage);
@@ -487,6 +489,14 @@ public class Level4Screen implements Screen{
         Matrix4 skyProjection = stage.getCamera().combined.cpy();
         skyProjection.translate(-stage.getCamera().position.x * (1 - parallax), -stage.getCamera().position.y * (1 - parallax), 0);
 
+        if(deathCount>1){
+            levelTransition.startFade(() -> {
+                game.setScreen(new Level4Screen(game));
+                player.setPosition(100,1000);
+                music.dispose();
+            });
+        }
+
         if(player.getY()<-256 && player.getX()<140*32){
             player.die();
             deathCount++;
@@ -496,8 +506,20 @@ public class Level4Screen implements Screen{
             deathCount++;
         }
 
-        if((player.getX()>140*32 && player.getY() < -100 && !gameFinished) || (player2.getX()>140*32 && player2.getY()< -100 && !gameFinished)){
-            finishGame();
+        // Проверка условия завершения игры
+        boolean player1Finished = player.getX() > 140*32 && player.getY() < -100;
+        boolean player2Finished = player2.getX() > 140*32 && player2.getY() < -100;
+
+        if (!gameFinished) {
+            if (MyGame.isMultiPlayer) {
+                if ((player1Finished) || (player2Finished)) {
+                    finishGame();
+                }
+            } else {
+                if (player1Finished) {
+                    finishGame();
+                }
+            }
         }
     }
     private void finishGame(){

@@ -199,9 +199,9 @@ public class Player extends Actor {
     }
     private void jump() {
         if (isStand &&  (jumpBufferTime < jumpBufferDuration)) {
-            velocity.y = JUMP;
             jumpSound.stop();
             jumpSound.play(0.15F);
+            velocity.y = JUMP;
             jumpBufferTime = jumpBufferDuration;
         }
     }
@@ -387,15 +387,15 @@ public class Player extends Actor {
         }
     }
     public void die(){
-        setPosition(100,500);
+        setPosition(100,1000);
         currentHealth = maxHealth;
-        velocity.y = 0;
         velocity.x = 0;
+        velocity.y = 0;
+        isMoving = false;
+        isStand = false;
+        handleInput();
         deathSound.stop();
         deathSound.play(0.4F);
-    }
-    public void heal(){
-        currentHealth = maxHealth;
     }
 
     public void playCoinPickup() {

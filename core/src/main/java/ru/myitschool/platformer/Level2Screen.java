@@ -301,7 +301,6 @@ public class Level2Screen implements Screen{
         Texture playerTexture = new Texture("my/frog/FrogIdle_0.png");
         player = new Player(playerTexture, leftButton, rightButton, upButton, playerX, playerY, coinLabel, 3);
         player.setPosition(100, 600);
-//        player.setPosition(4350, 1000);
         stage.addActor(player);
 
         player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3);
@@ -434,8 +433,12 @@ public class Level2Screen implements Screen{
 
         UIStage.act(delta);
         UIStage.draw();
+        if(isServer){
+            healthLabel.setText("Health:" + player.getCurrentHealth());
+        }else if(isClient){
+            healthLabel.setText("Health:" + player2.getCurrentHealth());
+        }
 
-        healthLabel.setText("Health:" + String.valueOf(player.getCurrentHealth()));
 
 
         levelTransition.render(delta);
@@ -459,6 +462,14 @@ public class Level2Screen implements Screen{
         Matrix4 skyProjection = stage.getCamera().combined.cpy();
         skyProjection.translate(-stage.getCamera().position.x * (1 - parallax), -stage.getCamera().position.y * (1 - parallax), 0);
 
+        if(deathCount>1){
+            levelTransition.startFade(() -> {
+                game.setScreen(new Level2Screen(game));
+                player.setPosition(100,1000);
+                music.dispose();
+            });
+        }
+
         if(player.getY()<-256){
             player.die();
             deathCount++;
@@ -467,14 +478,31 @@ public class Level2Screen implements Screen{
             player2.die();
             deathCount++;
         }
-        if((player.getY()>4380 && player.getX() < 150) || (player2.getX()>4380 && player2.getY()<150)){
-            levelTransition.startFade(() -> {
-                game.setScreen(new Level3Screen(game));
-                MyGame.newScore = score;
-                MyGame.isLevel3Available = true;
-                music.dispose();
-            });
-            Player.JUMP = 650;
+        boolean player1AtExit = player.getX() > 4380 && player.getY() < 150;
+        boolean player2AtExit = player2.getX() > 4380 && player2.getY() < 150;
+
+        if (MyGame.isMultiPlayer) {
+            // В мультиплеере переход, когда оба игрока у выхода
+            if ((player1AtExit) || (player2AtExit)) {
+                levelTransition.startFade(() -> {
+                    game.setScreen(new Level3Screen(game));
+                    MyGame.newScore = score;
+                    MyGame.isLevel3Available = true;
+                    music.dispose();
+                    Player.JUMP = 650;
+                });
+            }
+        } else {
+            // В одиночной игре переход по достижении выхода
+            if (player1AtExit) {
+                levelTransition.startFade(() -> {
+                    game.setScreen(new Level3Screen(game));
+                    MyGame.newScore = score;
+                    MyGame.isLevel3Available = true;
+                    music.dispose();
+                    Player.JUMP = 650;
+                });
+            }
         }
     }
 

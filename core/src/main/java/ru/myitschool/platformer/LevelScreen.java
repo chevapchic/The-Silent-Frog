@@ -427,8 +427,11 @@ public class LevelScreen implements Screen {
         UIStage.act(delta);
         UIStage.draw();
 
-        healthLabel.setText("Health:" + String.valueOf(player.getCurrentHealth()));
-
+        if(isServer){
+            healthLabel.setText("Health:" + player.getCurrentHealth());
+        }else if(isClient){
+            healthLabel.setText("Health:" + player2.getCurrentHealth());
+        }
         levelTransition.render(delta);
         if (levelTransition.isTransitionComplete()) {
             Gdx.input.setInputProcessor(stage);
@@ -446,9 +449,10 @@ public class LevelScreen implements Screen {
 //        timeString = String.format("%02d:%02d:%02d", minutes, seconds, milliseconds);
 //        timeLabel.setText(timeString);
 //        MyGame.elapsedTime = elapsedTime;
-        if(deathCount>10){
+        if(deathCount>1){
             levelTransition.startFade(() -> {
                 game.setScreen(new LevelScreen(game));
+                player.setPosition(100,1000);
                 music.dispose();
             });
         }

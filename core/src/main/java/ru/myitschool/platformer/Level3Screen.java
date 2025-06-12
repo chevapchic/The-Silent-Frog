@@ -301,10 +301,13 @@ public class Level3Screen implements Screen{
         player2 = new Player(playerTexture, leftButton, rightButton, upButton, playerX2, playerY2, coinLabel, 3);
 
         if(MyGame.isMultiPlayer && (isServer || isClient)) {
+            player2.setPosition(400, 256);
             stage.addActor(player2);
         }
 
         player.setZIndex(2);
+
+        if(MyGame.isMultiPlayer){createNetButtons();}
 
 
 //        player.setPosition(500,400);
@@ -400,6 +403,14 @@ public class Level3Screen implements Screen{
             }
         }
 
+        if(deathCount>1){
+            levelTransition.startFade(() -> {
+                game.setScreen(new Level3Screen(game));
+                player.setPosition(100,1000);
+                music.dispose();
+            });
+        }
+
         if(player.getY()<-256){
             player.die();
             deathCount++;
@@ -412,17 +423,36 @@ public class Level3Screen implements Screen{
             shakeCamera(5,0.3f);
             Player.isScreenShaking = false;
         }
-        if(player.getX()>400 && player.getY()>=2656 || player2.getX()>400 && player2.getY()>=2656 ){
-            levelTransition.startFade(() -> {
-                game.setScreen(new Level4Screen(game));
-                MyGame.newScore = score;
-                MyGame.isLevel4Available = true;
-                music.dispose();
-            });
+        // Проверка перехода на уровень 4
+        boolean player1AtExit = player.getX() > 400 && player.getY() >= 2656;
+        boolean player2AtExit = player2.getX() > 400 && player2.getY() >= 2656;
+
+        if (MyGame.isMultiPlayer) {
+            if ((player1AtExit) || (player2AtExit)) {
+                levelTransition.startFade(() -> {
+                    game.setScreen(new Level4Screen(game));
+                    MyGame.newScore = score;
+                    MyGame.isLevel4Available = true;
+                    music.dispose();
+                });
+            }
+        } else {
+            if (player1AtExit) {
+                levelTransition.startFade(() -> {
+                    game.setScreen(new Level4Screen(game));
+                    MyGame.newScore = score;
+                    MyGame.isLevel4Available = true;
+                    music.dispose();
+                });
+            }
         }
 
 
-        healthLabel.setText("Health:" + String.valueOf(player.getCurrentHealth()));
+        if(isServer){
+            healthLabel.setText("Health:" + player.getCurrentHealth());
+        }else if(isClient){
+            healthLabel.setText("Health:" + player2.getCurrentHealth());
+        }
 
 //        if (timerRunning) {elapsedTime += Gdx.graphics.getDeltaTime();}
 //        int minutes = (int) (elapsedTime / 60);
@@ -475,6 +505,85 @@ public class Level3Screen implements Screen{
     public void hide() {
 
     }
+    private void createNetButtons(){
+        TextureRegionDrawable csbDrUp = new TextureRegionDrawable(new Texture("buttons/player1Button.png"));
+        TextureRegionDrawable csbDrDown = new TextureRegionDrawable(new Texture("buttons/player1Button.png"));
+        createServerBut = new ImageButton(csbDrUp, csbDrDown);
+        csbDrUp.setMinHeight(createServerBut.getHeight() * 3.8F*1.5f);
+        csbDrUp.setMinWidth(createServerBut.getWidth() * 3.8F*1.5f);
+        csbDrDown.setMinHeight(createServerBut.getHeight() * 3.6F*1.5f);
+        csbDrDown.setMinWidth(createServerBut.getWidth() * 3.6F*1.5f);
+        createServerBut.setSize(createServerBut.getWidth()* 4.8F*1.5f, createServerBut.getHeight() * 4.8F*1.5f);
+        createServerBut.setPosition(stage.getViewport().getWorldWidth()-createServerBut.getWidth(), 300);
+        createServerBut.setVisible(true);
+        createServerBut.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if(!isServer && !isClient) {
+                    createServerBut.remove();
+                    createClientBut.remove();
+                    new Thread(() -> {
+                        try {
+                            MyGame.server = new MyServer(MyGame.responseFromServer);
+                            Gdx.app.postRunnable(() -> {
+                                MyGame.isServer = true;
+                                levelTransition.startFade(() -> {
+                                    game.setScreen(new LevelScreen(game));
+                                    music.dispose();
+
+                                });
+                            });
+                        } catch (Exception e) {
+                            Gdx.app.error("SERVER", "Creation failed", e);
+                        }
+                    }).start();
+                }
+            }
+        });
+        TextureRegionDrawable ccbDrUp = new TextureRegionDrawable(new Texture("buttons/joinButton.png"));
+        TextureRegionDrawable ccbDrDown = new TextureRegionDrawable(new Texture("buttons/joinButton.png"));
+        createClientBut = new ImageButton(ccbDrUp, ccbDrDown);
+        createClientBut.setPosition(stage.getViewport().getWorldWidth()+createServerBut.getWidth(), 500);
+        ccbDrUp.setMinHeight(createClientBut.getHeight() * 3.8F*1.5f);
+        ccbDrUp.setMinWidth(createClientBut.getWidth() * 3.8F*1.5f);
+        ccbDrDown.setMinHeight(createClientBut.getHeight() * 3.6F*1.5f);
+        ccbDrDown.setMinWidth(createClientBut.getWidth() * 3.6F*1.5f);
+        createClientBut.setSize(createClientBut.getWidth()* 4.8F*1.5f, createClientBut.getHeight() * 4.8F*1.5f);
+        createClientBut.setPosition(stage.getViewport().getWorldWidth(), 300);
+        createClientBut.setVisible(true);
+        createClientBut.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if(!isServer && !isClient) {
+                    createServerBut.remove();
+                    createClientBut.remove();
+                    new Thread(() -> {
+                        try {
+                            MyGame.client = new MyClient(MyGame.requestFromClient);
+                            Gdx.app.postRunnable(() -> {
+                                if(MyGame.client.isCantConnected) {
+                                    MyGame.client = null;
+                                    MyGame.ipAddressOfServer = "Server not found";
+                                } else {
+                                    MyGame.isClient = true;
+                                    levelTransition.startFade(() -> {
+                                        game.setScreen(new LevelScreen(game));
+                                        music.dispose();
+
+                                    });
+                                }
+                            });
+                        } catch (Exception e) {
+                            Gdx.app.error("CLIENT", "Connection failed", e);
+                        }
+                    }).start();
+                }
+            }
+        });
+        UIStage.addActor(createServerBut);
+        UIStage.addActor(createClientBut);
+    }
+
     private void updateCamera(Camera camera){
         if(MyGame.isMultiPlayer) {
             if (isServer) {
@@ -482,7 +591,7 @@ public class Level3Screen implements Screen{
                 playerY = player.getY() + player.getWidth() / 2;
                 cameraShake.update(Gdx.graphics.getDeltaTime());
                 targetPosition = new Vector3();
-                targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
+                targetPosition.set(MathUtils.clamp(500, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
                 camera.position.y = camera.position.y - 10;
                 camera.position.lerp(targetPosition, lerpSpeed);
                 tiledMapRenderer.setView((OrthographicCamera) camera);
@@ -492,7 +601,7 @@ public class Level3Screen implements Screen{
                 playerY2 = player2.getY() + player2.getWidth() / 2;
                 cameraShake.update(Gdx.graphics.getDeltaTime());
                 targetPosition = new Vector3();
-                targetPosition.set(MathUtils.clamp(playerX2, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY2 + 100, 0);
+                targetPosition.set(MathUtils.clamp(500, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY2 + 100, 0);
                 camera.position.y = camera.position.y - 10;
                 camera.position.lerp(targetPosition, lerpSpeed);
                 tiledMapRenderer.setView((OrthographicCamera) camera);
@@ -502,7 +611,7 @@ public class Level3Screen implements Screen{
             playerY = player.getY() + player.getWidth() / 2;
             cameraShake.update(Gdx.graphics.getDeltaTime());
             targetPosition = new Vector3();
-            targetPosition.set(MathUtils.clamp(playerX, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
+            targetPosition.set(MathUtils.clamp(500, SCREEN_WIDTH / 4F, maxMapSize - SCREEN_WIDTH / 4F), playerY + 100, 0);
             camera.position.y = camera.position.y - 10;
             camera.position.lerp(targetPosition, lerpSpeed);
             tiledMapRenderer.setView((OrthographicCamera) camera);
